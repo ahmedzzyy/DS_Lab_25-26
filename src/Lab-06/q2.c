@@ -71,64 +71,72 @@ Node *insertTerm(Node *head, int coeff, int exp)
 {
     Node *newNode = createPolynomialNode(coeff, exp);
     if (head == NULL)
-    {
         return newNode;
-    }
 
     Node *current = head;
-    Node *prev = NULL;
 
     while (current != NULL && current->exp > exp)
     {
-        prev = current;
         current = current->next;
     }
 
-    if (current != NULL && current->exp == exp)
+    if (current && current->exp == exp)
     {
+        // Case 1: exponent already exists → update coefficient
         current->coeff += coeff;
         free(newNode);
 
-        // If coefficient becomes zero, remove the node
+        // if coefficient becomes zero, remove the node
         if (current->coeff == 0)
         {
-            if (prev)
-            {
-                prev->next = current->next;
-            }
-            else
-            {
-                head = current->next;
-            }
+            Node *prev = current->prev;
+            Node *next = current->next;
 
-            // Adjust the prev pointer of the next node
-            if (current->next)
-            {
-                current->next->prev = prev;
-            }
+            if (prev)
+                prev->next = next;
+            else
+                head = next; // removing head
+
+            if (next)
+                next->prev = prev;
 
             free(current);
         }
+
+        return head;
     }
-    else
+
+    if (current == head)
     {
-        newNode->next = current;
-        newNode->prev = prev;
-
-        if (prev)
-        {
-            prev->next = newNode;
-        }
-        else
-        {
-            head = newNode;
-        }
-
-        if (current)
-        {
-            current->prev = newNode;
-        }
+        // Case 2: insert at the beginning
+        newNode->next = head;
+        head->prev = newNode;
+        return newNode;
     }
+
+    if (current == NULL)
+    {
+        // Case 3: insert at the end
+        Node *tail = head;
+        while (tail->next != NULL)
+        {
+            tail = tail->next;
+        }
+
+        tail->next = newNode;
+        newNode->prev = tail;
+
+        return head;
+    }
+
+    // Case 4: insert in between or at the end
+    Node *prev = current->prev;
+
+    newNode->next = current;
+    newNode->prev = prev;
+
+    prev->next = newNode;
+    current->prev = newNode;
 
     return head;
 }
@@ -158,6 +166,7 @@ Node *addPolynomials(Node *poly1, Node *poly2)
             {
                 result = insertTerm(result, sumCoeff, p1->exp);
             }
+
             p1 = p1->next;
             p2 = p2->next;
         }
@@ -181,16 +190,11 @@ Node *addPolynomials(Node *poly1, Node *poly2)
 void displayPolynomial(Node *head)
 {
     Node *current = head;
+
     while (current != NULL)
     {
-        if (current->coeff > 0 && current != head)
-        {
-            printf(" + ");
-        }
-        else if (current->coeff < 0)
-        {
-            printf(" - ");
-        }
+        if (current != head)
+            printf(" %c ", (current->coeff >= 0) ? '+' : '-');
 
         printf("%dx^%d", abs(current->coeff), current->exp);
         current = current->next;
